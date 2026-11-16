@@ -71,6 +71,17 @@ Please [open an issue](../../issues) and include:
 - A pathological regex can freeze the tab on one long paragraph ([#2](../../issues/2)).
 - Very long threads stop after 400 loads.
 
+## Development
+
+The script is a single file with no build step. Tests run under Node 22 or later with jsdom:
+
+```
+npm install
+npm test
+```
+
+They load the script into a synthetic comment thread (`test/fixtures/`) and check its internals. They catch regressions in the script, not changes on Substack's side; the yellow button is what catches those.
+
 ## License
 
 [MIT](LICENSE)

@@ -1084,4 +1084,24 @@
     mark.scds-hit.scds-current { background: #ff8a3d; box-shadow: 0 0 0 2px rgba(255,138,61,.5); }
   `;
   document.head.appendChild(pageStyle);
+
+  // Test hook. The Node test harness defines this function on the window
+  // before evaluating the script; no browser page does, so in Safari this is
+  // inert and the file stays a single droppable script. Reassigned state
+  // (hits, hitIndex, mode, health) is exposed through getters, since a plain
+  // property would capture the value at load time.
+  if (typeof window.__scdsTestHook === 'function') {
+    window.__scdsTestHook({
+      LOAD_MORE_TEXT, CONTAINER_SELECTORS, COMMENT_SELECTOR, BODY_SELECTOR,
+      NAME_SELECTOR, SCOPE_SELECTOR, HOST_ID, HINT,
+      getContainer, isVisible, findLoadMore, scopes, textNodesIn, matchesNode,
+      makeScanner, countComments, diagnose, escapeRe, parseQuery,
+      clearHighlights, highlight, focusHit, isToggleChord, isCommentPage,
+      host, shadow,
+      get hits() { return hits; },
+      get hitIndex() { return hitIndex; },
+      get mode() { return mode; },
+      get health() { return health; },
+    });
+  }
 })();
