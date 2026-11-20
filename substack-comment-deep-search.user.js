@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Substack Comment Deep Search
 // @namespace    https://github.com/treyharris
-// @version      1.7.5
+// @version      1.7.6
 // @description  Search a Substack comment thread, auto-clicking "Load More" until the term is found or the thread is exhausted.
 // @author       Trey Harris
 // @license      MIT
@@ -10,10 +10,10 @@
 // @match        https://*.substack.com/*
 // @grant        none
 // @run-at       document-idle
-// @homepageURL  https://gist.github.com/treyharris/f1c5a319d58d40bcd870f6849b56c84a
-// @supportURL   https://gist.github.com/treyharris/f1c5a319d58d40bcd870f6849b56c84a
-// @downloadURL  https://gist.githubusercontent.com/treyharris/f1c5a319d58d40bcd870f6849b56c84a/raw/substack-comment-deep-search.user.js
-// @updateURL    https://gist.githubusercontent.com/treyharris/f1c5a319d58d40bcd870f6849b56c84a/raw/substack-comment-deep-search.user.js
+// @homepageURL  https://github.com/treyharris/substack-comment-deep-search
+// @supportURL   https://github.com/treyharris/substack-comment-deep-search/issues
+// @downloadURL  https://raw.githubusercontent.com/treyharris/substack-comment-deep-search/main/substack-comment-deep-search.user.js
+// @updateURL    https://raw.githubusercontent.com/treyharris/substack-comment-deep-search/main/substack-comment-deep-search.user.js
 // ==/UserScript==
 
 // Copyright (c) 2026 Trey Harris
@@ -91,7 +91,7 @@
   // Telling them apart needs two numbers the matcher does not currently keep:
   // nodes processed, and the duration of the slowest single node.
 
-  const HINT = 'v1.7.5 — type a term, or /regex/[imsuv]* for pattern mode.';
+  const HINT = 'v1.7.6 — type a term, or /regex/[imsuv]* for pattern mode.';
   const HOLD_MS = 550;               // long-press threshold for the kill popup
   const YIELD_EVERY = 150;           // nodes highlighted between event-loop yields
   // waitForGrowth resolves the moment a comment appears, which can be mid-
