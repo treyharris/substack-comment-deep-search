@@ -28,21 +28,68 @@ test('findLoadMore finds the button by its text, not its classes', withScript(({
 test('findLoadMore accepts the known text variants and role=button', withScript(({ api, document }) => {
   const c = api.getContainer();
   const btn = api.findLoadMore(c);
-  for (const text of ['load more', '  Load More  ', 'Show more', 'More comments', '12 more replies']) {
+  for (const text of ['load more', '  Load More  ', 'LOAD MORE', 'Show more', 'More comments']) {
     btn.textContent = text;
     assert.equal(api.findLoadMore(c), btn, text);
   }
-  for (const text of ['Read more', 'Reload', 'Load More comments from this very long and chatty thread']) {
+  for (const text of ['Read more', 'Reload', 'Load More comments', '12 more replies', '194 more replies']) {
     btn.textContent = text;
     assert.equal(api.findLoadMore(c), null, text);
   }
-  btn.remove();
   const div = document.createElement('div');
   div.setAttribute('role', 'button');
   div.textContent = 'Load More';
-  c.appendChild(div);
+  btn.replaceWith(div);
   assert.equal(api.findLoadMore(c), div);
 }));
+
+// The "More from the ... chat" block that Substack renders at the foot of a
+// comments page, inside .comments-page. Its classes are hash-suffixed, as
+// observed; the fix must not depend on them.
+function addChatSection(document, label) {
+  const section = document.createElement('div');
+  section.className = 'thread-SxUlwu';
+  section.innerHTML =
+    '<h4>More from the The Bulwark chat</h4>' +
+    '<div class="post">Let\u2019s discuss: something.</div>' +
+    '<div class="replies-LmIItY"><button class="moreReplies-xVy3wc"></button></div>';
+  const button = section.querySelector('button');
+  button.textContent = label;
+  let clicked = 0;
+  button.addEventListener('click', () => { clicked++; });
+  document.querySelector('.comments-page').appendChild(section);
+  return { button, clicks: () => clicked };
+}
+
+// F13: with the real Load More gone, the next match down the page was the
+// chat block's "194 more replies", whose handler opens the chat.
+test('F13: a "N more replies" button in the chat block is never chosen', withScript(({ api, document }) => {
+  const c = api.getContainer();
+  const chat = addChatSection(document, '194 more replies');
+  const real = api.findLoadMore(c);
+  assert.equal(real.textContent, 'Load More');
+  real.remove();
+  assert.equal(api.findLoadMore(c), null);
+  assert.equal(chat.clicks(), 0);
+}));
+
+test('F13: a Load More-labelled button outside the comment list is never chosen', withScript(({ api, document }) => {
+  const c = api.getContainer();
+  addChatSection(document, 'Load More');
+  const real = api.findLoadMore(c);
+  assert.equal(real.parentElement, document.querySelector('.comments-page'));
+  real.remove();
+  assert.equal(api.findLoadMore(c), null, 'label matches, position does not');
+}));
+
+test('F13: with comment selectors drifted, the label alone decides', withScript(
+  { html: variant(['class="comment"', 'class="comment-NOPE"']) },
+  ({ api, document }) => {
+    const c = api.getContainer();
+    addChatSection(document, '194 more replies');
+    assert.equal(api.findLoadMore(c).textContent, 'Load More');
+  }
+));
 
 test('findLoadMore ignores a button with no size', withScript(({ api }) => {
   const c = api.getContainer();
