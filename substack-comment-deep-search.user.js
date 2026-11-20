@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Substack Comment Deep Search
 // @namespace    https://github.com/treyharris
-// @version      1.7.6
+// @version      1.7.7
 // @description  Search a Substack comment thread, auto-clicking "Load More" until the term is found or the thread is exhausted.
 // @author       Trey Harris
 // @license      MIT
@@ -54,7 +54,9 @@
   // Configuration — the two things most likely to need tweaking are
   // LOAD_MORE_TEXT and CONTAINER_SELECTORS.
   // ---------------------------------------------------------------------
-  const LOAD_MORE_TEXT = /^(load more|show more|more comments|\d+ more)/i;
+  // The whole label must match. A prefix match once accepted the chat
+  // section's "194 more replies" at the foot of the page (F13).
+  const LOAD_MORE_TEXT = /^(load more|show more|more comments)$/i;
   const CONTAINER_SELECTORS = ['.comments-page', '.dt-comments', '#comments'];
   const COMMENT_SELECTOR = '.comment';
   // Only these are searched and highlighted, which keeps LIKE / REPLY /
@@ -91,7 +93,7 @@
   // Telling them apart needs two numbers the matcher does not currently keep:
   // nodes processed, and the duration of the slowest single node.
 
-  const HINT = 'v1.7.6 — type a term, or /regex/[imsuv]* for pattern mode.';
+  const HINT = 'v1.7.7 — type a term, or /regex/[imsuv]* for pattern mode.';
   const HOLD_MS = 550;               // long-press threshold for the kill popup
   const YIELD_EVERY = 150;           // nodes highlighted between event-loop yields
   // waitForGrowth resolves the moment a comment appears, which can be mid-
@@ -131,13 +133,22 @@
     return r.width > 0 && r.height > 0;
   }
 
+  // Load More sits beside the comment list, so its parent contains the
+  // thread's comments. Other sections inside the container, such as the
+  // "More from the ... chat" block at the foot of the page, have buttons of
+  // their own, and clicking one navigates away from the thread (F13). If no
+  // comment matches COMMENT_SELECTOR (selector drift), only the label is
+  // checked.
   function findLoadMore(container) {
+    const first = container.querySelector(COMMENT_SELECTOR);
     const candidates = container.querySelectorAll('button, [role="button"]');
     for (const el of candidates) {
       if (el.closest(`#${HOST_ID}`)) continue;
       const text = (el.textContent || '').trim();
       if (text.length > 40) continue;
-      if (LOAD_MORE_TEXT.test(text) && isVisible(el)) return el;
+      if (!LOAD_MORE_TEXT.test(text) || !isVisible(el)) continue;
+      if (first && !(el.parentElement && el.parentElement.contains(first))) continue;
+      return el;
     }
     return null;
   }
@@ -1084,4 +1095,24 @@
     mark.scds-hit.scds-current { background: #ff8a3d; box-shadow: 0 0 0 2px rgba(255,138,61,.5); }
   `;
   document.head.appendChild(pageStyle);
+
+  // Test hook. The Node test harness defines this function on the window
+  // before evaluating the script; no browser page does, so in Safari this is
+  // inert and the file stays a single droppable script. Reassigned state
+  // (hits, hitIndex, mode, health) is exposed through getters, since a plain
+  // property would capture the value at load time.
+  if (typeof window.__scdsTestHook === 'function') {
+    window.__scdsTestHook({
+      LOAD_MORE_TEXT, CONTAINER_SELECTORS, COMMENT_SELECTOR, BODY_SELECTOR,
+      NAME_SELECTOR, SCOPE_SELECTOR, HOST_ID, HINT,
+      getContainer, isVisible, findLoadMore, scopes, textNodesIn, matchesNode,
+      makeScanner, countComments, diagnose, escapeRe, parseQuery,
+      clearHighlights, highlight, focusHit, isToggleChord, isCommentPage,
+      host, shadow,
+      get hits() { return hits; },
+      get hitIndex() { return hitIndex; },
+      get mode() { return mode; },
+      get health() { return health; },
+    });
+  }
 })();
