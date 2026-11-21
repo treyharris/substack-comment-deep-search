@@ -109,3 +109,13 @@ test('F5: focusHit prunes marks that a re-render detached', withScript(async ({ 
   assert.equal(api.hits.length, 0);
   assert.equal(api.shadow.querySelector('.badge').hidden, true);
 }));
+
+// F14, from the highlighter's side: the same stepping loop is in highlight().
+test('F14: highlight gets past an emoji with a pattern that can match empty', withScript(async ({ api, document }) => {
+  const p = document.querySelector('.comment-body p');
+  p.textContent = `smile ${String.fromCodePoint(0x1F600)} then smile`;
+  const result = await api.highlight(api.getContainer(), api.parseQuery('/(smile)?/u').rx);
+  assert.equal(result.count, 2);
+  assert.deepEqual(marks(document).map((m) => m.textContent), ['smile', 'smile']);
+  assert.equal(p.textContent, `smile ${String.fromCodePoint(0x1F600)} then smile`);
+}));

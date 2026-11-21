@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Substack Comment Deep Search
 // @namespace    https://github.com/treyharris
-// @version      1.7.7
+// @version      1.7.8
 // @description  Search a Substack comment thread, auto-clicking "Load More" until the term is found or the thread is exhausted.
 // @author       Trey Harris
 // @license      MIT
@@ -93,7 +93,7 @@
   // Telling them apart needs two numbers the matcher does not currently keep:
   // nodes processed, and the duration of the slowest single node.
 
-  const HINT = 'v1.7.7 — type a term, or /regex/[imsuv]* for pattern mode.';
+  const HINT = 'v1.7.8 — type a term, or /regex/[imsuv]* for pattern mode.';
   const HOLD_MS = 550;               // long-press threshold for the kill popup
   const YIELD_EVERY = 150;           // nodes highlighted between event-loop yields
   // waitForGrowth resolves the moment a comment appears, which can be mid-
@@ -181,12 +181,23 @@
   // matches are stepped over rather than accepted — /\b/ and /x*/ match empty
   // at many positions, and no analysis of the pattern can rule that out in
   // advance, so it has to be handled per match.
+  // Steps past an empty match. With the u or v flag, exec moves an index
+  // that falls inside a surrogate pair back to the start of the pair, so
+  // stepping one code unit never gets past an astral character such as an
+  // emoji, and the caller's loop spins forever (F14). Step a whole code point
+  // instead.
+  function stepPast(rx, value) {
+    const i = rx.lastIndex;
+    const wide = (rx.unicode || rx.unicodeSets) && i < value.length && value.codePointAt(i) > 0xFFFF;
+    rx.lastIndex = i + (wide ? 2 : 1);
+  }
+
   function matchesNode(rx, value) {
     rx.lastIndex = 0;
     let m;
     while ((m = rx.exec(value)) !== null) {
       if (m[0].length) return true;
-      rx.lastIndex++;
+      stepPast(rx, value);
       if (rx.lastIndex > value.length) break;
     }
     return false;
@@ -449,7 +460,7 @@
       rx.lastIndex = 0;
       while ((m = rx.exec(value)) !== null) {
         if (!m[0].length) {
-          rx.lastIndex++;
+          stepPast(rx, value);
           if (rx.lastIndex > value.length) break;
           continue;
         }

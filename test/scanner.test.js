@@ -11,19 +11,19 @@ test('matchesNode steps over zero-length matches', withScript(({ api }) => {
   assert.equal(api.matchesNode(/c$/g, 'abc'), true);
 }));
 
-// Known bug, found while writing these tests. With the u or v flag, the
-// engine snaps a lastIndex that lands between the two halves of a surrogate
-// pair back to the start of the pair, so the loop's lastIndex++ never gets
-// past an emoji and a pattern that can match empty spins forever. The same
-// loop is in highlight(). Skipped because a synchronous infinite loop cannot
-// be timed out in-process; remove the skip along with the fix.
+// F14: with the u or v flag, exec moves a lastIndex that falls inside a
+// surrogate pair back to the start of the pair, so stepping past an empty
+// match one code unit at a time never got past an emoji. A synchronous
+// infinite loop can't be timed out in-process, so a regression here hangs
+// the suite rather than failing it.
 const EMOJI = String.fromCodePoint(0x1F600);
-test('zero-length stepping gets past astral characters under u and v', {
-  skip: 'hangs: lastIndex++ cannot step over a surrogate pair under the u or v flag',
-}, withScript(({ api }) => {
+test('F14: zero-length stepping gets past astral characters under u and v', withScript(({ api }) => {
   assert.equal(api.matchesNode(/x*/gu, `ok ${EMOJI} then`), false);
   assert.equal(api.matchesNode(/x*/gv, `ok ${EMOJI} then`), false);
   assert.equal(api.matchesNode(/x*/gu, `ok ${EMOJI} thxen`), true);
+  assert.equal(api.matchesNode(/x*/gu, `${EMOJI}${EMOJI}`), false, 'adjacent pairs, at the start');
+  assert.equal(api.matchesNode(/x*/gu, `ab${EMOJI}`), false, 'pair at the end');
+  assert.equal(api.matchesNode(/x*/g, `ok ${EMOJI} then`), false, 'without u, stepping by code unit is fine');
 }));
 
 test('matchesNode starts from the beginning whatever lastIndex was', withScript(({ api }) => {
